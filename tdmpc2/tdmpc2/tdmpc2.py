@@ -41,7 +41,7 @@ class TDMPC2:
         self.pi_optim = torch.optim.Adam(
             self.model._pi.parameters(), lr=self.cfg.lr, eps=1e-5
         )
-        self.model.eval()
+        self.model.eval() #sets model to evaluation mode
         self.scale = RunningScale(cfg)
         self.cfg.iterations += 2 * int(
             cfg.action_dim >= 20
