@@ -1,12 +1,13 @@
 import argparse
 import pathlib
-
+import torch
 import cv2
 import gymnasium as gym
 
 import humanoid_bench
 from .env import ROBOTS, TASKS
-import hf_transformer.initTrafo
+from hf_transformer.initTrafo import initialize_model
+import numpy as np
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="HumanoidBench environment test")
@@ -59,8 +60,17 @@ if __name__ == "__main__":
     # print("observation:", ob)
     env.render()
     ret = 0
+    model=initialize_model(env.action_space.shape[0])
     while True:
-        action = env.action_space.sample()
+        if isinstance(ob, dict):
+        # Convert the values of ob into a numpy array
+            ob_array = np.array(list(ob.values()))
+        else:
+        # Use ob as is
+            ob_array = ob
+        ob_tensor = torch.from_numpy(ob_array)
+        ob2 = ob_tensor.view(1, -1)
+        action = model(ob2) #env.action_space.sample()
         ob, rew, terminated, truncated, info = env.step(action)
         img = env.render()
         ret += rew

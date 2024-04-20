@@ -1,6 +1,6 @@
 import torch
 from transformers import DecisionTransformerModel, DecisionTransformerConfig
-from transformers.models.decision_transformer import TrainableDT
+#from transformers.models.decision_transformer import TrainableDT
 
 
 def initialize_model(actiondim):
@@ -19,5 +19,5 @@ def initialize_model(actiondim):
     )
 
     # Create an instance of TrainableDT
-    model = TrainableDT(config)
+    model = DecisionTransformerModel(config)
     return model
