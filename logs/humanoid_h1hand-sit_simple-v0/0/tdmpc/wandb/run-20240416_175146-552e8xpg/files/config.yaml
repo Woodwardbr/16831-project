@@ -1,0 +1,249 @@
+wandb_version: 1
+
+task:
+  desc: null
+  value: humanoid_h1hand-sit_simple-v0
+obs:
+  desc: null
+  value: state
+checkpoint:
+  desc: null
+  value: ???
+eval_episodes:
+  desc: null
+  value: 1
+eval_freq:
+  desc: null
+  value: 50000
+steps:
+  desc: null
+  value: 10000000
+batch_size:
+  desc: null
+  value: 256
+reward_coef:
+  desc: null
+  value: 0.1
+value_coef:
+  desc: null
+  value: 0.1
+consistency_coef:
+  desc: null
+  value: 20
+rho:
+  desc: null
+  value: 0.5
+lr:
+  desc: null
+  value: 0.0003
+enc_lr_scale:
+  desc: null
+  value: 0.3
+grad_clip_norm:
+  desc: null
+  value: 20
+tau:
+  desc: null
+  value: 0.01
+discount_denom:
+  desc: null
+  value: 5
+discount_min:
+  desc: null
+  value: 0.95
+discount_max:
+  desc: null
+  value: 0.995
+buffer_size:
+  desc: null
+  value: 3000000
+exp_name:
+  desc: null
+  value: tdmpc
+data_dir:
+  desc: null
+  value: ???
+mpc:
+  desc: null
+  value: true
+iterations:
+  desc: null
+  value: 8
+num_samples:
+  desc: null
+  value: 512
+num_elites:
+  desc: null
+  value: 64
+num_pi_trajs:
+  desc: null
+  value: 24
+horizon:
+  desc: null
+  value: 3
+min_std:
+  desc: null
+  value: 0.05
+max_std:
+  desc: null
+  value: 2
+temperature:
+  desc: null
+  value: 0.5
+log_std_min:
+  desc: null
+  value: -10
+log_std_max:
+  desc: null
+  value: 2
+entropy_coef:
+  desc: null
+  value: 0.0001
+num_bins:
+  desc: null
+  value: 101
+vmin:
+  desc: null
+  value: -10
+vmax:
+  desc: null
+  value: 10
+model_size:
+  desc: null
+  value: ???
+num_enc_layers:
+  desc: null
+  value: 2
+enc_dim:
+  desc: null
+  value: 256
+num_channels:
+  desc: null
+  value: 32
+mlp_dim:
+  desc: null
+  value: 512
+latent_dim:
+  desc: null
+  value: 512
+task_dim:
+  desc: null
+  value: 0
+num_q:
+  desc: null
+  value: 5
+dropout:
+  desc: null
+  value: 0.01
+simnorm_dim:
+  desc: null
+  value: 8
+wandb_project:
+  desc: null
+  value: humanoid-bench
+wandb_entity:
+  desc: null
+  value: bwoodward
+wandb_silent:
+  desc: null
+  value: false
+disable_wandb:
+  desc: null
+  value: false
+save_csv:
+  desc: null
+  value: true
+save_video:
+  desc: null
+  value: true
+save_agent:
+  desc: null
+  value: true
+seed:
+  desc: null
+  value: 0
+work_dir:
+  desc: null
+  value: /home/woodwardbr/16831-project/logs/humanoid_h1hand-sit_simple-v0/0/tdmpc
+task_title:
+  desc: null
+  value: Humanoid_H1Hand Sit_Simple V0
+multitask:
+  desc: null
+  value: false
+tasks:
+  desc: null
+  value:
+  - humanoid_h1hand-sit_simple-v0
+obs_shape:
+  desc: null
+  value:
+    state:
+    - 151
+action_dim:
+  desc: null
+  value: 61
+episode_length:
+  desc: null
+  value: 1000
+obs_shapes:
+  desc: null
+  value: ???
+action_dims:
+  desc: null
+  value: ???
+episode_lengths:
+  desc: null
+  value: ???
+seed_steps:
+  desc: null
+  value: 5000
+bin_size:
+  desc: null
+  value: 0.2
+policy_path:
+  desc: null
+  value: ???
+mean_path:
+  desc: null
+  value: ???
+var_path:
+  desc: null
+  value: ???
+policy_type:
+  desc: null
+  value: ???
+small_obs:
+  desc: null
+  value: ???
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.14
+    cli_version: 0.16.6
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1713304306.0
+    t:
+      1:
+      - 1
+      - 12
+      - 50
+      - 55
+      2:
+      - 1
+      - 12
+      - 50
+      - 55
+      3:
+      - 13
+      - 15
+      - 16
+      - 23
+      - 61
+      4: 3.10.14
+      5: 0.16.6
+      8:
+      - 5
+      13: linux-x86_64

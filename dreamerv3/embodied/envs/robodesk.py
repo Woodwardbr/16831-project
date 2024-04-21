@@ -7,7 +7,7 @@ class RoboDesk(embodied.Env):
     def __init__(self, task, mode, repeat=1, length=500, resets=True):
         assert mode in ("train", "eval")
         if "MUJOCO_GL" not in os.environ:
-            os.environ["MUJOCO_GL"] = "egl"
+            os.environ["MUJOCO_GL"] = "osmesa"
         try:
             from robodesk import robodesk
         except ImportError:

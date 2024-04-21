@@ -1,0 +1,29 @@
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Current SDK version is 0.16.6
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Configure stats pid to 287030
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Loading settings from /home/woodwardbr/.config/wandb/settings
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Loading settings from /home/woodwardbr/16831-project/outputs/2024-04-16/17-51-42/wandb/settings
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Loading settings from environment variables: {'silent': 'false'}
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-16 17:51:46,864 WARNING MainThread:287030 [wandb_setup.py:_flush():76] Could not find program at -m tdmpc2.train
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': None, 'program': '-m tdmpc2.train'}
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_init.py:_log_setup():521] Logging user logs to /home/woodwardbr/16831-project/logs/humanoid_h1hand-sit_simple-v0/0/tdmpc/wandb/run-20240416_175146-552e8xpg/logs/debug.log
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_init.py:_log_setup():522] Logging internal logs to /home/woodwardbr/16831-project/logs/humanoid_h1hand-sit_simple-v0/0/tdmpc/wandb/run-20240416_175146-552e8xpg/logs/debug-internal.log
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_init.py:init():561] calling init triggers
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_init.py:init():568] wandb.init called with sweep_config: {}
+config: {'task': 'humanoid_h1hand-sit_simple-v0', 'obs': 'state', 'checkpoint': '???', 'eval_episodes': 1, 'eval_freq': 50000, 'steps': 10000000, 'batch_size': 256, 'reward_coef': 0.1, 'value_coef': 0.1, 'consistency_coef': 20, 'rho': 0.5, 'lr': 0.0003, 'enc_lr_scale': 0.3, 'grad_clip_norm': 20, 'tau': 0.01, 'discount_denom': 5, 'discount_min': 0.95, 'discount_max': 0.995, 'buffer_size': 3000000, 'exp_name': 'tdmpc', 'data_dir': '???', 'mpc': True, 'iterations': 8, 'num_samples': 512, 'num_elites': 64, 'num_pi_trajs': 24, 'horizon': 3, 'min_std': 0.05, 'max_std': 2, 'temperature': 0.5, 'log_std_min': -10, 'log_std_max': 2, 'entropy_coef': 0.0001, 'num_bins': 101, 'vmin': -10, 'vmax': 10, 'model_size': '???', 'num_enc_layers': 2, 'enc_dim': 256, 'num_channels': 32, 'mlp_dim': 512, 'latent_dim': 512, 'task_dim': 0, 'num_q': 5, 'dropout': 0.01, 'simnorm_dim': 8, 'wandb_project': 'humanoid-bench', 'wandb_entity': 'bwoodward', 'wandb_silent': False, 'disable_wandb': False, 'save_csv': True, 'save_video': True, 'save_agent': True, 'seed': 0, 'work_dir': PosixPath('/home/woodwardbr/16831-project/logs/humanoid_h1hand-sit_simple-v0/0/tdmpc'), 'task_title': 'Humanoid_H1Hand Sit_Simple V0', 'multitask': False, 'tasks': ['humanoid_h1hand-sit_simple-v0'], 'obs_shape': {'state': [151]}, 'action_dim': 61, 'episode_length': 1000, 'obs_shapes': '???', 'action_dims': '???', 'episode_lengths': '???', 'seed_steps': 5000, 'bin_size': 0.2, 'policy_path': '???', 'mean_path': '???', 'var_path': '???', 'policy_type': '???', 'small_obs': '???'}
+2024-04-16 17:51:46,864 INFO    MainThread:287030 [wandb_init.py:init():611] starting backend
+2024-04-16 17:51:46,865 INFO    MainThread:287030 [wandb_init.py:init():615] setting up manager
+2024-04-16 17:51:46,867 INFO    MainThread:287030 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-04-16 17:51:46,868 INFO    MainThread:287030 [wandb_init.py:init():623] backend started and connected
+2024-04-16 17:51:46,875 INFO    MainThread:287030 [wandb_init.py:init():715] updated telemetry
+2024-04-16 17:51:46,881 INFO    MainThread:287030 [wandb_init.py:init():748] communicating run to backend with 90.0 second timeout
+2024-04-16 17:51:47,283 INFO    MainThread:287030 [wandb_run.py:_on_init():2357] communicating current version
+2024-04-16 17:51:47,444 INFO    MainThread:287030 [wandb_run.py:_on_init():2366] got version response 
+2024-04-16 17:51:47,444 INFO    MainThread:287030 [wandb_init.py:init():799] starting run threads in backend
+2024-04-16 17:51:53,171 INFO    MainThread:287030 [wandb_run.py:_console_start():2335] atexit reg
+2024-04-16 17:51:53,171 INFO    MainThread:287030 [wandb_run.py:_redirect():2190] redirect: wrap_raw
+2024-04-16 17:51:53,172 INFO    MainThread:287030 [wandb_run.py:_redirect():2255] Wrapping output streams.
+2024-04-16 17:51:53,172 INFO    MainThread:287030 [wandb_run.py:_redirect():2280] Redirects installed.
+2024-04-16 17:51:53,172 INFO    MainThread:287030 [wandb_init.py:init():842] run started, returning control to user process
+2024-04-18 22:49:54,226 WARNING MsgRouterThr:287030 [router.py:message_loop():77] message_loop has been closed

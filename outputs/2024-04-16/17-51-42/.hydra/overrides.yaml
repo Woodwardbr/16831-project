@@ -1,0 +1,5 @@
+- disable_wandb=False
+- wandb_entity=bwoodward
+- exp_name=tdmpc
+- task=humanoid_h1hand-sit_simple-v0
+- seed=0

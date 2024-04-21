@@ -10,7 +10,7 @@ from tdmpc2.envs.wrappers.time_limit import TimeLimit
 class HumanoidWrapper(gym.Wrapper):
     def __init__(self, env, cfg):
         if sys.platform != "darwin" and "MUJOCO_GL" not in os.environ:
-            os.environ["MUJOCO_GL"] = "egl"
+            os.environ["MUJOCO_GL"] = "osmesa"
         if "SLURM_STEP_GPUS" in os.environ:
             os.environ["EGL_DEVICE_ID"] = os.environ["SLURM_STEP_GPUS"]
             print(f"EGL_DEVICE_ID set to {os.environ['SLURM_STEP_GPUS']}")
