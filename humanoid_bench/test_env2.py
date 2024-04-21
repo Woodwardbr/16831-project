@@ -7,6 +7,7 @@ import gymnasium as gym
 import humanoid_bench
 from .env import ROBOTS, TASKS
 from hf_transformer.initTrafo import initialize_model
+from hf_transformer.trainable_transformer import TrainableDT
 import numpy as np
 
 if __name__ == "__main__":
@@ -56,21 +57,52 @@ if __name__ == "__main__":
     else:
         print(f"ob_space = {env.observation_space}, ob = {ob.shape}")
         assert env.observation_space.shape == ob.shape
+    #import pdb; pdb.set_trace()
     print(f"ac_space = {env.action_space.shape}")
     # print("observation:", ob)
     env.render()
     ret = 0
-    model=initialize_model(env.action_space.shape[0])
-    while True:
-        if isinstance(ob, dict):
+    model=initialize_model(env.observation_space.shape[0], env.action_space.shape[0])
+    #model=model.double()
+    rew=torch.zeros((1,1),dtype=torch.float32)
+    z=rew
+    z=z.long()
+    action=torch.zeros_like(torch.from_numpy(env.action_space.sample()))
+    """"
+    if isinstance(ob, dict):
         # Convert the values of ob into a numpy array
-            ob_array = np.array(list(ob.values()))
-        else:
+        ob_array = np.array(list(ob.values()))
+    else:
         # Use ob as is
-            ob_array = ob
-        ob_tensor = torch.from_numpy(ob_array)
-        ob2 = ob_tensor.view(1, -1)
-        action = model(ob2) #env.action_space.sample()
+        ob_array = ob
+    ob_array= ob_array.flatten()
+    """
+    #ob2 = torch.tensor(ob_array, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    
+    #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False) #env.action_space.sample()
+    #pdb.set_trace()
+    #s needs to have shape torch.zeros([1, 1, 151]
+
+    #see line 882 in https://github.com/huggingface/transformers/blob/v4.40.0/src/transformers/models/decision_transformer/modeling_decision_transformer.py#L782
+
+    s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
+    print("shape",torch.from_numpy(env.action_space.sample()).view(1,1,-1).shape)
+    _,a,_ = model(states=s, actions= action.view(1,1,-1), rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
+    print("action",a.squeeze(0).squeeze(0).detach().numpy().shape)
+    action=env.action_space.sample()
+    i=0
+    #print(torch.tensor(0, dtype=torch.float32).unsqueeze(0).unsqueeze(0))
+    rew=0
+    while True:
+        #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
+        #action = env.action_space.sample()
+        print("Iteration",i)
+        #print("reward",rew)
+        i+=1
+        s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
+        rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+        _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=rew2, return_dict=False)
+        action = a2.squeeze(0).squeeze(0).detach().numpy()
         ob, rew, terminated, truncated, info = env.step(action)
         img = env.render()
         ret += rew
