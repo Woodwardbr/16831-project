@@ -26,7 +26,7 @@ class MetaWorld(embodied.Env):
             ALL_V2_ENVIRONMENTS_GOAL_HIDDEN,
         )
 
-        os.environ["MUJOCO_GL"] = "egl"
+        os.environ["MUJOCO_GL"] = "osmesa"
         task = task.replace("_", "-")
         task = f"{task}-v2-goal-observable"
         env = ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[task](seed=seed)

@@ -5,7 +5,7 @@ from hf_transformer.data_collector import DecisionTransformerGymDataCollator
 from hf_transformer.trainable_transformer import TrainableDT
 
 os.environ["WANDB_DISABLED"] = "true" # we diable weights and biases logging for this tutorial
-dataset = load_dataset("edbeeching/decision_transformer_gym_replay", "halfcheetah-expert-v2")
+dataset = load_dataset("nicklashansen/tdmpc2", data_dir="mt30", revision="main")
 
 collator = DecisionTransformerGymDataCollator(dataset["train"])
 

@@ -28,7 +28,7 @@ class LocoNav(embodied.Env):
         else:
             freq = 50
         if "MUJOCO_GL" not in os.environ:
-            os.environ["MUJOCO_GL"] = "egl"
+            os.environ["MUJOCO_GL"] = "osmesa"
         from dm_control import composer
         from dm_control.locomotion.props import target_sphere
         from dm_control.locomotion.tasks import random_goal_maze
