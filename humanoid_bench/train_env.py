@@ -9,6 +9,8 @@ from .env import ROBOTS, TASKS
 from hf_transformer.initTrafo import initialize_model
 from hf_transformer.trainable_transformer import TrainableDT
 import numpy as np
+from torch.utils.data import DataLoader
+from transformers import DecisionTransformerModel, AdamW
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="HumanoidBench environment test")
@@ -93,25 +95,66 @@ if __name__ == "__main__":
     i=0
     #print(torch.tensor(0, dtype=torch.float32).unsqueeze(0).unsqueeze(0))
     rew=0
-    while True:
-        #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
-        #action = env.action_space.sample()
-        #print("Iteration",i)
-        #print("reward",rew)
-        i+=1
-        s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
-        rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=rew2, return_dict=False)
-        action = a2.squeeze(0).squeeze(0).detach().numpy()
-        ob, rew, terminated, truncated, info = env.step(action)
-        img = env.render()
-        ret += rew
+    terminated=False
+    truncated=False
 
-        if args.render_mode == "rgb_array":
-            cv2.imshow("test_env", img[:, :, ::-1])
-            cv2.waitKey(1)
+    buffer=[]
 
-        if terminated or truncated:
-            ret = 0
-            env.reset()
-    env.close()
+    for episode in range(1):
+        ob,_=env.reset()
+        #print("state ", ob.shape)
+        terminated=False
+        truncated=False
+        rew=0
+        while not terminated and i<10:
+            #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
+            #action = env.action_space.sample()
+            #print("Iteration",i)
+            #print("reward",rew)
+            i+=1
+            old_ob=ob
+            old_rew=rew
+            s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
+            rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+            #print("s shape", s.shape, "action shape", torch.from_numpy(action).view(1,1,-1).shape, "rew shape", rew2.shape)
+            _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=rew2, return_dict=False)
+            action = a2.squeeze(0).squeeze(0).detach().numpy()
+            ob, rew, done, truncated, info = env.step(action)
+            img = env.render()
+            ret += rew
+            buffer.append((old_ob,action, old_rew, ob, rew))
+            if args.render_mode == "rgb_array":
+                cv2.imshow("test_env", img[:, :, ::-1])
+                cv2.waitKey(1)
+
+            if terminated or truncated:
+                ret = 0
+                env.reset()
+        env.close()
+
+    dataset = [(torch.from_numpy(s).float().unsqueeze(0), torch.from_numpy(a).view(1,1,-1).squeeze(0), torch.tensor(r, dtype=torch.float32).unsqueeze(0), torch.from_numpy(next_s).float().unsqueeze(0), torch.tensor(next_r, dtype=torch.float32).unsqueeze(0)) for s, a, r, next_s, next_r in buffer]
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+    loss_function = torch.nn.CrossEntropyLoss()
+    optimizer = AdamW(model.parameters(), lr=1e-5)
+
+    model.train()
+
+    print("Training...")
+
+    for states, actions, rewards, next_states, next_rewards in dataloader:
+        # Forward pass
+        print("states shape", states.shape, "actions shape", actions.shape, "rewards shape", rewards.shape, "next_states shape", next_states.shape, "next_rewards shape", next_rewards.shape)
+        pred_states, pred_actions, pred_rewards = model(states=states, actions=actions, rewards=rewards, returns_to_go=rewards, timesteps= z, attention_mask=rewards, return_dict=False)
+        print("Forward pass done")
+        # Compute the loss
+        loss = loss_function(pred_actions, actions) #+ loss_function(pred_rewards, next_rewards) + loss_function(pred_states, next_states)
+        print("Loss computed")
+        # Backward pass
+        loss.backward()
+
+        # Update the parameters
+        optimizer.step()
+
+        # Clear the gradients
+        optimizer.zero_grad()
+
