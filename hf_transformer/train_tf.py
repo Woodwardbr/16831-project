@@ -1,14 +1,22 @@
 import os
-from datasets import load_dataset
+import torch
+from torch.utils.data import Dataset, DataLoader
+from datasets import load_from_disk, load_dataset
 from transformers import DecisionTransformerConfig, Trainer, TrainingArguments
-from hf_transformer.data_collector import DecisionTransformerGymDataCollator
+from hf_transformer.data_collator import DecisionTransformerGymDataCollator
 from hf_transformer.trainable_transformer import TrainableDT
+from hf_transformer.hf_hub_files import get_tdmpc2_mt30
 
 os.environ["WANDB_DISABLED"] = "true" # we diable weights and biases logging for this tutorial
-dataset = load_dataset("nicklashansen/tdmpc2", data_dir="mt30", revision="main")
 
-collator = DecisionTransformerGymDataCollator(dataset["train"])
+print("Collecting data...")
+data_path = get_tdmpc2_mt30() # Download the TDMPC 30 task dataset and return path
 
+# TODO: Make this use all chunks
+dataset = torch.load(os.path.join(os.getcwd(),data_path,'chunk_0.pt'))
+collator = DecisionTransformerGymDataCollator(dataset)
+
+print("Initializing Transformer...")
 config = DecisionTransformerConfig(state_dim=collator.state_dim, act_dim=collator.act_dim)
 model = TrainableDT(config)
 
@@ -27,8 +35,9 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=dataset["train"],
+    train_dataset=dataset,
     data_collator=collator,
 )
 
+print("Beginning training...")
 trainer.train()
