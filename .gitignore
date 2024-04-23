@@ -5,10 +5,13 @@ __pycache__/
 *.py[cod]
 dist
 
+# vscode
+.vscode/*
+
 # macOS
 .DS_Store
 logs
 outputs
 wandb
 output
-data/hf
+data

@@ -69,7 +69,7 @@ class DecisionTransformerGymDataCollator:
             timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
             timesteps[-1][timesteps[-1] >= self.max_ep_len] = self.max_ep_len - 1  # padding cutoff
             rtg.append(
-                self._discount_cumsum(np.array(feature["reward"][si:]), gamma=1.0)[
+                self._discount_cumsum(np.array(feature["reward"][si:]), gamma=0.99)[
                     : s[-1].shape[1]   # TODO check the +1 removed here
                 ].reshape(1, -1, 1)
             )
