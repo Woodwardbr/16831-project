@@ -11,3 +11,4 @@ logs
 outputs
 wandb
 output
+data/hf

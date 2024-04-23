@@ -22,6 +22,7 @@ def initialize_model(statedim,actiondim):
 
     # Create an instance of TrainableDT
     model = DecisionTransformerModel(config)#TrainableDT(config)
+    #model=DecisionTransformerModel.from_pretrained("output/checkpoint-375000", local_files_only=True)
     return model
 
 #def trainmodel(model: DecisionTransformerModel, )

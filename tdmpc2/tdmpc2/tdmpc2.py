@@ -239,6 +239,8 @@ class TDMPC2:
         """
         self.pi_optim.zero_grad(set_to_none=True)
         self.model.track_q_grad(False)
+
+        
         _, pis, log_pis, _ = self.model.pi(zs, task)
         qs = self.model.Q(zs, pis, task, return_type="avg")
         self.scale.update(qs[0])
@@ -288,7 +290,6 @@ class TDMPC2:
                 dict: Dictionary of training statistics.
         """
         obs, action, reward, task = buffer.sample()
-
         # Compute targets
         with torch.no_grad():
             next_z = self.model.encode(obs[1:], task)

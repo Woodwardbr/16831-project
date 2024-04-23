@@ -101,7 +101,9 @@ if __name__ == "__main__":
         i+=1
         s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
         rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=rew2, return_dict=False)
+        a=torch.from_numpy(action).view(1,1,-1)
+        print("state",s.shape, "action",a.shape, "reward",rew2.shape, "timesteps",z.shape)
+        _,a2,_ = model(states=s, actions= a, rewards=rew2.unsqueeze(0), returns_to_go=rew2.unsqueeze(0), timesteps= z, attention_mask=rew2, return_dict=False)
         action = a2.squeeze(0).squeeze(0).detach().numpy()
         ob, rew, terminated, truncated, info = env.step(action)
         img = env.render()

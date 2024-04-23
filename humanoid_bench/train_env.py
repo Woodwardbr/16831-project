@@ -97,16 +97,22 @@ if __name__ == "__main__":
     rew=0
     terminated=False
     truncated=False
-
+    o=torch.ones((3,256,151), dtype=torch.float32)
+    acc=torch.ones((3,256,61), dtype=torch.float32)
+    r=torch.ones((3,256,1), dtype=torch.float32)
+    zz=torch.ones((3,256), dtype=torch.long)
+    print("o shape", o.shape, "acc shape", acc.shape, "r shape", r.shape, "zz shape", zz.shape)
+    model(states=o, actions= acc, rewards=r, returns_to_go=r, timesteps= zz, attention_mask=zz, return_dict=False)
+    print("model initialized with dummy data")
     buffer=[]
-
-    for episode in range(1):
+    eplen=3
+    for episode in range(eplen):
         ob,_=env.reset()
         #print("state ", ob.shape)
         terminated=False
         truncated=False
         rew=0
-        while not terminated and i<10:
+        while not terminated and i<2:
             #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
             #action = env.action_space.sample()
             #print("Iteration",i)
@@ -115,9 +121,9 @@ if __name__ == "__main__":
             old_ob=ob
             old_rew=rew
             s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)
-            rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+            rew2= torch.tensor(rew, dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0)
             #print("s shape", s.shape, "action shape", torch.from_numpy(action).view(1,1,-1).shape, "rew shape", rew2.shape)
-            _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=rew2, return_dict=False)
+            _,a2,_ = model(states=s, actions= torch.from_numpy(action).view(1,1,-1), rewards=rew2, returns_to_go=rew2, timesteps= z, attention_mask=z, return_dict=False)
             action = a2.squeeze(0).squeeze(0).detach().numpy()
             ob, rew, done, truncated, info = env.step(action)
             img = env.render()
@@ -132,7 +138,7 @@ if __name__ == "__main__":
                 env.reset()
         env.close()
 
-    dataset = [(torch.from_numpy(s).float().unsqueeze(0), torch.from_numpy(a).view(1,1,-1).squeeze(0), torch.tensor(r, dtype=torch.float32).unsqueeze(0), torch.from_numpy(next_s).float().unsqueeze(0), torch.tensor(next_r, dtype=torch.float32).unsqueeze(0)) for s, a, r, next_s, next_r in buffer]
+    dataset = [(torch.from_numpy(s).float().unsqueeze(0), torch.from_numpy(a).view(1,1,-1).squeeze(0), torch.tensor(r, dtype=torch.float32).unsqueeze(0).unsqueeze(0), torch.from_numpy(next_s).float().unsqueeze(0), torch.tensor(next_r, dtype=torch.float32).unsqueeze(0).unsqueeze(0)) for s, a, r, next_s, next_r in buffer]
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
     loss_function = torch.nn.CrossEntropyLoss()
     optimizer = AdamW(model.parameters(), lr=1e-5)
@@ -144,7 +150,7 @@ if __name__ == "__main__":
     for states, actions, rewards, next_states, next_rewards in dataloader:
         # Forward pass
         print("states shape", states.shape, "actions shape", actions.shape, "rewards shape", rewards.shape, "next_states shape", next_states.shape, "next_rewards shape", next_rewards.shape)
-        pred_states, pred_actions, pred_rewards = model(states=states, actions=actions, rewards=rewards, returns_to_go=rewards, timesteps= z, attention_mask=rewards, return_dict=False)
+        pred_states, pred_actions, pred_rewards = model(states=states, actions=actions, rewards=rewards, returns_to_go=rewards, timesteps= z, attention_mask=z, return_dict=False)
         print("Forward pass done")
         # Compute the loss
         loss = loss_function(pred_actions, actions) #+ loss_function(pred_rewards, next_rewards) + loss_function(pred_states, next_states)

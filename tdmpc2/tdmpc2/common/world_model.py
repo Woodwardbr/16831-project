@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from tdmpc2.common import layers, math, init
-
+from hf_transformer.initTrafo import initialize_model
 
 class WorldModel(nn.Module):
     """
