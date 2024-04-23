@@ -207,6 +207,12 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         # mu, pi, log_pi = tdmpc_math.squash(mu, pi, log_pi)
 
         # action_preds = (mu, pi, log_pi, log_std)
+        if self.use_horizon_batchsize_dimensioning:
+            state_preds = state_preds.permute(1,0,2)
+            mu = mu.permute(1,0,2)
+            log_std = log_std.permute(1,0,2)
+            return_preds = return_preds.permute(1,0,2)
+            
         action_preds = (mu, log_std)
 
         if not return_dict:

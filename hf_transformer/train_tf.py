@@ -1,8 +1,8 @@
 import os
 import torch
-from transformers import DecisionTransformerConfig, Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments
 from hf_transformer.data_collator import DecisionTransformerGymDataCollator
-from hf_transformer.trainable_transformer import TrainableDT
+from hf_transformer.tdmpc_transformer import TDMPCDecisionTransformerConfig, TDMPCDecisionTransformerModel
 from hf_transformer.hf_hub_files import get_tdmpc2_mt30
 
 os.environ["WANDB_DISABLED"] = "true" # we diable weights and biases logging for this tutorial
@@ -12,11 +12,26 @@ data_path = get_tdmpc2_mt30() # Download the TDMPC 30 task dataset and return pa
 
 # TODO: Make this use all chunks
 dataset = torch.load(os.path.join(os.getcwd(),data_path,'chunk_0.pt'))
+for i in range(1,4):
+    d = torch.load(os.path.join(os.getcwd(),data_path,f'chunk_{i}.pt'))
+    for k in dataset.keys():
+        dataset[k] = torch.cat((dataset[k],d[k]),0)
 collator = DecisionTransformerGymDataCollator(dataset)
 
+cfg = {
+    "numtasks": 1,
+    "latent_dim": 512,
+    "action_dim": 61,
+    "use_horizon_batchsize_dimensioning": False
+}
+
 print("Initializing Transformer...")
-config = DecisionTransformerConfig(state_dim=collator.state_dim, act_dim=collator.act_dim)
-model = TrainableDT(config)
+tf_config = TDMPCDecisionTransformerConfig(num_tasks=cfg.task_dim,
+                                            state_dim=cfg.latent_dim,
+                                            act_dim=cfg.action_dim,
+                                            use_horizon_batchsize_dimensioning=cfg.use_horizon_batchsize_dimensioning
+                                            )
+model = TDMPCDecisionTransformerModel(tf_config)
 
 training_args = TrainingArguments(
     output_dir="output/",
