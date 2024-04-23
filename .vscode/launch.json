@@ -5,12 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File with Arguments",
+            "name": "Python Debugger: TDPMC2 Train",
             "type": "debugpy",
             "request": "launch",
             "program": "-m tdmpc2.train",
             "console": "integratedTerminal",
             "args": "disable_wandb=True wandb_entity=kaustabp exp_name=tdmpc task=humanoid_h1hand-sit_simple-v0 seed=0",
+        },
+        {
+            "name": "Python Debugger: Pretraining",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "hf_transformer/train_tf.py",
+            "console": "integratedTerminal",
+            "args": "",
         }
     ]
 }
