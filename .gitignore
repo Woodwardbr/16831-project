@@ -5,8 +5,13 @@ __pycache__/
 *.py[cod]
 dist
 
+# vscode
+.vscode/*
+
 # macOS
 .DS_Store
 
 # Data
 data/hf/*
+logs/*
+*.png
