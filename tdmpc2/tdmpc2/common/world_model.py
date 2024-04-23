@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 
 from tdmpc2.common import layers, math, init
+from hf_transformer.tdmpc_transformer import TDMPCDecisionTransformerModel, TDMPCDecisionTransformerConfig
 
 
 class WorldModel(nn.Module):
@@ -36,6 +37,12 @@ class WorldModel(nn.Module):
         self._pi = layers.mlp(
             cfg.latent_dim + cfg.task_dim, 2 * [cfg.mlp_dim], 2 * cfg.action_dim
         )
+        self.tf_config = TDMPCDecisionTransformerConfig(num_tasks=cfg.task_dim,
+                                                        state_dim=cfg.latent_dim,
+                                                        act_dim=cfg.action_dim,
+                                                        use_horizon_batchsize_dimensioning=True
+                                                        )
+        self._transformer = TDMPCDecisionTransformerModel(self.tf_config)
         self._Qs = layers.Ensemble(
             [
                 layers.mlp(
@@ -139,6 +146,23 @@ class WorldModel(nn.Module):
             z = self.task_emb(z, task)
         z = torch.cat([z, a], dim=-1)
         return self._reward(z)
+    
+    def get_z_only_tf_input(self, z):
+        if len(z.shape)<3:
+            z = z.unsqueeze(0)
+
+        horizon = z.shape[0]
+        batch_size = z.shape[1]
+        tf_inputs = {
+            'states': z,
+            'actions': torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device),
+            'rewards': torch.zeros((horizon,batch_size,1)).to(z.device),
+            'returns_to_go': torch.zeros((horizon,batch_size,1)).to(z.device),
+            'timesteps': torch.arange(0,horizon).unsqueeze(0).repeat(batch_size,1).T.unsqueeze(2).to(z.device),
+            # 'attention_mask': torch.zeros((horizon,batch_size,1)).to(z.device)
+        }
+        return tf_inputs
+
 
     def pi(self, z, task):
         """
@@ -150,7 +174,14 @@ class WorldModel(nn.Module):
             z = self.task_emb(z, task)
 
         # Gaussian policy prior
-        mu, log_std = self._pi(z).chunk(2, dim=-1)
+        # mu, log_std = self._pi(z).chunk(2, dim=-1)
+        tf_input = self.get_z_only_tf_input(z)
+        _, action_output, _ = self._transformer(**tf_input)
+        mu = action_output[0]
+        log_std = action_output[1]
+        if len(z.shape) < 3:
+            mu = mu.squeeze()
+            log_std = log_std.squeeze()
         log_std = math.log_std(log_std, self.log_std_min, self.log_std_dif)
         eps = torch.randn_like(mu)
 

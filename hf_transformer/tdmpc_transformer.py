@@ -53,9 +53,16 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         self.predict_action_and_log_prob = nn.Sequential(
             *([nn.Linear(config.hidden_size, 2*config.act_dim)])
         )
-        self._action_masks = torch.zeros(config.num_tasks, config.act_dim)
+
+        # TODO(woodwardbr): delete if we dont add math back in
+        # self._action_masks = torch.zeros(config.num_tasks, config.act_dim)
 
         self.predict_return = torch.nn.Linear(config.hidden_size, 1)
+
+        # woodwardbr: Use this to have the data come in as (Horizon, Batchsize, Dimension)
+        #             instead of (Batchsize, Horizon, Dimension)
+        self.use_horizon_batchsize_dimensioning = config.use_horizon_batchsize_dimensioning
+
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -70,11 +77,10 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         returns_to_go: Optional[torch.FloatTensor] = None,
         timesteps: Optional[torch.LongTensor] = None,
         attention_mask: Optional[torch.FloatTensor] = None,
-        task: Optional[torch.FloatTensor] = None,
+        # task: Optional[torch.FloatTensor] = None, # TODO(woodwardbr): check if I can delete this
         output_hidden_states: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         return_dict: Optional[bool] = False,
-        use_horizon_batchsize_dimensioning: Optional[bool] = False,
     ) -> Union[Tuple[torch.FloatTensor], DecisionTransformerOutput]:
         r"""
         Returns:
@@ -121,14 +127,15 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        if use_horizon_batchsize_dimensioning:
+        if self.use_horizon_batchsize_dimensioning:
             states = states.permute(1,0,2)
             actions = actions.permute(1,0,2)
             rewards = rewards.permute(1,0,2)
-            target_return = target_return.permute(1,0,2)
+            returns_to_go = returns_to_go.permute(1,0,2)
             timesteps = timesteps.permute(1,0,2)
-            attention_mask = attention_mask.permute(1,0,2)
-            tasks = tasks.permute(1,0,2)
+            if attention_mask is not None:
+                attention_mask = attention_mask.permute(1,0,2)
+            # tasks = tasks.permute(1,0,2)
 
         batch_size, seq_length = states.shape[0], states.shape[1]
 
@@ -140,7 +147,7 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         state_embeddings = self.embed_state(states)
         action_embeddings = self.embed_action(actions)
         returns_embeddings = self.embed_return(returns_to_go)
-        time_embeddings = self.embed_timestep(timesteps)
+        time_embeddings = self.embed_timestep(timesteps).reshape(batch_size,seq_length,self.hidden_size)
 
         # time embeddings are treated similar to positional embeddings
         state_embeddings = state_embeddings + time_embeddings
@@ -154,15 +161,15 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
         )
-        stacked_inputs = self.embed_ln(stacked_inputs)
+        stacked_inputs = self.embed_ln(stacked_inputs).to(self.device)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
             torch.stack((attention_mask, attention_mask, attention_mask), dim=1)
             .permute(0, 2, 1)
             .reshape(batch_size, 3 * seq_length)
-        )
-        device = stacked_inputs.device
+        ).to(self.device)
+        device = self.device
         # we feed in the input embeddings (not word indices as in NLP) to the model
         encoder_outputs = self.encoder(
             inputs_embeds=stacked_inputs,
@@ -219,6 +226,7 @@ class TDMPCDecisionTransformerConfig(DecisionTransformerConfig):
     def __init__(
         self,
         num_tasks=1,
+        use_horizon_batchsize_dimensioning=False,
         state_dim=17,
         act_dim=4,
         hidden_size=128,
@@ -245,10 +253,11 @@ class TDMPCDecisionTransformerConfig(DecisionTransformerConfig):
     ):
         # For adding any additional KWArgs we want to config
         self.num_tasks = num_tasks
+        self.use_horizon_batchsize_dimensioning = use_horizon_batchsize_dimensioning
 
         super().__init__(
             state_dim=state_dim, act_dim=act_dim,  max_ep_len=max_ep_len,
-            action_tanh=action_tanh, vocab_size=vocab_size,
+            action_tanh=action_tanh, vocab_size=vocab_size, hidden_size=hidden_size,
             n_positions=n_positions, _layer=n_layer, n_head=n_head,
             n_inner=n_inner, activation_function=activation_function,
             resid_pdrop=resid_pdrop, embd_pdrop=embd_pdrop, attn_pdrop=attn_pdrop,
