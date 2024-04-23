@@ -1,7 +1,5 @@
 import os
 import torch
-from torch.utils.data import Dataset, DataLoader
-from datasets import load_from_disk, load_dataset
 from transformers import DecisionTransformerConfig, Trainer, TrainingArguments
 from hf_transformer.data_collator import DecisionTransformerGymDataCollator
 from hf_transformer.trainable_transformer import TrainableDT
