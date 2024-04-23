@@ -1,6 +1,6 @@
 import random
-import os
 from dataclasses import dataclass
+from hf_transformer.encoder import Encoder
 
 import numpy as np
 import torch
@@ -18,18 +18,23 @@ class DecisionTransformerGymDataCollator:
     p_sample: np.array = None  # a distribution to take account trajectory lengths
     n_traj: int = 0 # to store the number of trajectories in the dataset
     
-    def __init__(self, dataset) -> None:
-        self.act_dim = dataset["action"].shape[-1]
-        self.state_dim = dataset["obs"].shape[-1]
+    def __init__(self, dataset, config) -> None:
+        self.act_dim = config.action_dim
+        self.state_dim = config.obs_shape['state'][0]
+        self.latent_dim = config.latent_dim
+        self.task_dim = config.task_dim
         self.dataset = dataset
+
         # calculate dataset stats for normalization of states
         self.n_traj = dataset['obs'].shape[0]
-        self.state_mean = dataset['obs'].mean(dim=0).mean(dim=0).numpy()
-        self.state_std = dataset['obs'].std(dim=0).std(dim=0).numpy()+1e-9
+        # TODO(woodwardbr): probably can delete this bc of encoding
+        # self.state_mean = dataset['obs'].mean(dim=0).mean(dim=0).numpy()
+        # self.state_std = dataset['obs'].std(dim=0).std(dim=0).numpy()+1e-9
         self.p_sample = np.ones((self.n_traj)) / self.n_traj
 
-        self.num_tasks = torch.max(dataset['task']).item()
-        self.state_dim += self.num_tasks
+        self.encoder = Encoder(config)
+        self.only_state_p = config.only_state_p
+        self.use_horizon_batchsize_dimensioning = config.use_horizon_batchsize_dimensioning
 
     def _discount_cumsum(self, x, gamma):
         discount_cumsum = np.zeros_like(x)
@@ -37,6 +42,22 @@ class DecisionTransformerGymDataCollator:
         for t in reversed(range(x.shape[0] - 1)):
             discount_cumsum[t] = x[t] + gamma * discount_cumsum[t + 1]
         return discount_cumsum
+    
+    def get_z_only_tf_input(self, z):
+        if len(z.shape)<3:
+            z = z.unsqueeze(0)
+
+        horizon = z.shape[0]
+        batch_size = z.shape[1]
+        tf_inputs = {
+            'states': z,
+            'actions': torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device),
+            'rewards': torch.zeros((horizon,batch_size,1)).to(z.device),
+            'returns_to_go': torch.zeros((horizon,batch_size,1)).to(z.device),
+            'timesteps': torch.arange(0,horizon).unsqueeze(0).repeat(batch_size,1).T.unsqueeze(2).to(z.device),
+            'attention_mask': torch.zeros((horizon,batch_size,1)).to(z.device)
+        }
+        return tf_inputs
 
     def __call__(self, features):
         batch_size = len(features)
@@ -48,7 +69,7 @@ class DecisionTransformerGymDataCollator:
             p=self.p_sample,  # reweights so we sample according to timesteps
         )
         # a batch of dataset features
-        s, a, r, rtg, timesteps, mask = [], [], [], [], [], []
+        z, a, r, rtg, timesteps, mask = [], [], [], [], [], []
         
         for ind in batch_inds:
             # for feature in features:
@@ -56,49 +77,70 @@ class DecisionTransformerGymDataCollator:
             si = random.randint(0, len(feature["reward"]) - 1)
 
             # get sequences from dataset
-            s_obs = np.array(feature["obs"][si : si + self.max_len]).reshape(1, -1, self.state_dim-self.num_tasks)
-            task_arr = np.array(feature["task"][si : si + self.max_len]).reshape(1, -1)
-            # add task encoding to state
-            t_enc = np.zeros((1,task_arr.shape[1], self.num_tasks))
-            t_enc[0, np.arange(task_arr.shape[1]), task_arr.squeeze()-1] = 1
-            s.append(np.concatenate([t_enc, s_obs], axis=2))
-            
-            a.append(np.array(feature["action"][si : si + self.max_len]).reshape(1, -1, self.act_dim))
-            r.append(np.array(feature["reward"][si : si + self.max_len]).reshape(1, -1, 1))
+            s_b = feature["obs"][si : si + self.max_len].clone().detach().unsqueeze(0)
+            a_b = np.array(feature["action"][si : si + self.max_len])
+            r_b = np.array(feature["reward"][si : si + self.max_len])
+            t_b = feature["task"][si : si + self.max_len].clone().detach()
 
-            timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
+            # reshape to maximum dimension by adding 0s
+            s_b = torch.cat([s_b, torch.zeros((s_b.shape[0], s_b.shape[1], self.state_dim-s_b.shape[2]))], axis=2)
+            a_b = np.concatenate([a_b, np.zeros((a_b.shape[0], self.act_dim-a_b.shape[1]))], axis=1)
+            
+            # Encode into latent space
+            # Append to sequences
+            z.append(self.encoder.encode(s_b, t_b).detach().numpy())
+            a.append(a_b.reshape(1, -1, self.act_dim))
+            r.append(r_b.reshape(1, -1, 1))
+
+            timesteps.append(np.arange(si, si + z[-1].shape[1]).reshape(1, -1))
             timesteps[-1][timesteps[-1] >= self.max_ep_len] = self.max_ep_len - 1  # padding cutoff
             rtg.append(
                 self._discount_cumsum(np.array(feature["reward"][si:]), gamma=0.99)[
-                    : s[-1].shape[1]   # TODO check the +1 removed here
+                    : z[-1].shape[1]   # TODO check the +1 removed here
                 ].reshape(1, -1, 1)
             )
-            if rtg[-1].shape[1] < s[-1].shape[1]:
+            if rtg[-1].shape[1] < z[-1].shape[1]:
                 print("if true")
                 rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)
 
             # padding and state + reward normalization
-            tlen = s[-1].shape[1]
-            s[-1] = np.concatenate([np.zeros((1, self.max_len - tlen, self.state_dim)), s[-1]], axis=1)
-            s[-1][:,:,self.num_tasks:] = (s[-1][:,:,self.num_tasks:] - self.state_mean) / self.state_std
+            tlen = z[-1].shape[1]
+            z[-1] = np.concatenate([np.zeros((1, self.max_len - tlen, self.latent_dim)), z[-1]], axis=1)
+            # TODO(woodwardbr): probably can delete this bc of encoding
+            # z[-1][:,:,self.task_dim:] = (z[-1][:,:,self.task_dim:] - self.state_mean) / self.state_std
             a[-1] = np.concatenate(
                 [np.ones((1, self.max_len - tlen, self.act_dim)) * -10.0, a[-1]],
                 axis=1,
             )
             r[-1] = np.concatenate([np.zeros((1, self.max_len - tlen, 1)), r[-1]], axis=1)
             rtg[-1] = np.concatenate([np.zeros((1, self.max_len - tlen, 1)), rtg[-1]], axis=1) / self.scale
-            timesteps[-1] = np.concatenate([np.zeros((1, self.max_len - tlen)), timesteps[-1]], axis=1)
+            timesteps[-1] = np.expand_dims(np.concatenate([np.zeros((1, self.max_len - tlen)), timesteps[-1]], axis=1),2)
             mask.append(np.concatenate([np.zeros((1, self.max_len - tlen)), np.ones((1, tlen))], axis=1))
 
-        s = torch.from_numpy(np.concatenate(s, axis=0)).float()
+            # Use some examples where only state is populated
+            # So that the transformer is prepared for TDMPC2
+            if np.random.rand() < self.only_state_p:
+                a[-1] = np.zeros_like(a[-1])
+                r[-1] = np.zeros_like(r[-1])
+                rtg[-1] = np.zeros_like(rtg[-1])
+
+        z = torch.from_numpy(np.concatenate(z, axis=0)).float()
         a = torch.from_numpy(np.concatenate(a, axis=0)).float()
         r = torch.from_numpy(np.concatenate(r, axis=0)).float()
         rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).float()
         timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).long()
         mask = torch.from_numpy(np.concatenate(mask, axis=0)).float()
 
+        if self.use_horizon_batchsize_dimensioning:
+            z = z.permute(1,0,2)
+            a = a.permute(1,0,2)
+            r = r.permute(1,0,2)
+            rtg = rtg.permute(1,0,2)
+            timesteps = timesteps.permute(1,0,2)
+            mask = mask.permute(1,0)
+
         return {
-            "states": s,
+            "states": z,
             "actions": a,
             "rewards": r,
             "returns_to_go": rtg,

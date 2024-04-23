@@ -134,7 +134,7 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
             returns_to_go = returns_to_go.permute(1,0,2)
             timesteps = timesteps.permute(1,0,2)
             if attention_mask is not None:
-                attention_mask = attention_mask.permute(1,0,2)
+                attention_mask = attention_mask.permute(1,0)
             # tasks = tasks.permute(1,0,2)
 
         batch_size, seq_length = states.shape[0], states.shape[1]
@@ -212,7 +212,7 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
             mu = mu.permute(1,0,2)
             log_std = log_std.permute(1,0,2)
             return_preds = return_preds.permute(1,0,2)
-            
+
         action_preds = (mu, log_std)
 
         if not return_dict:
