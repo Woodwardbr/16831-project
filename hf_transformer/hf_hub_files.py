@@ -1,5 +1,4 @@
 from huggingface_hub import hf_hub_download, snapshot_download
-import threading
 
 def download_file(repo, folder, file):
     cache_dir = "data/hf"
