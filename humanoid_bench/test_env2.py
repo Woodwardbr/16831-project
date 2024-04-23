@@ -96,7 +96,7 @@ if __name__ == "__main__":
     while True:
         #_, action, _ = model(states=ob, actions= action, rewards=rew, returns_to_go=rew, timesteps= z, attention_mask=rew, return_dict=False)
         #action = env.action_space.sample()
-        print("Iteration",i)
+        #print("Iteration",i)
         #print("reward",rew)
         i+=1
         s=torch.from_numpy(ob).float().unsqueeze(0).unsqueeze(0)

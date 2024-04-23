@@ -23,3 +23,5 @@ def initialize_model(statedim,actiondim):
     # Create an instance of TrainableDT
     model = DecisionTransformerModel(config)#TrainableDT(config)
     return model
+
+#def trainmodel(model: DecisionTransformerModel, )

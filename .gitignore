@@ -10,8 +10,7 @@ dist
 
 # macOS
 .DS_Store
-
-# Data
-data/hf/*
-logs/*
-*.png
+logs
+outputs
+wandb
+output
