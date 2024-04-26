@@ -59,8 +59,7 @@ class DecisionTransformerGymDataCollator:
         }
         return tf_inputs
 
-    def __call__(self, features):
-        batch_size = len(features)
+    def __call__(self, batch_size):
         # this is a bit of a hack to be able to sample of a non-uniform distribution
         batch_inds = np.random.choice(
             np.arange(self.n_traj),

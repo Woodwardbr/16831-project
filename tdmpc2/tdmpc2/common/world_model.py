@@ -176,9 +176,7 @@ class WorldModel(nn.Module):
         # Gaussian policy prior
         # mu, log_std = self._pi(z).chunk(2, dim=-1)
         tf_input = self.get_z_only_tf_input(z)
-        _, action_output, _ = self._transformer(**tf_input)
-        mu = action_output[0]
-        log_std = action_output[1]
+        _, mu, log_std, _ = self._transformer(**tf_input)
         if len(z.shape) < 3:
             mu = mu.squeeze()
             log_std = log_std.squeeze()

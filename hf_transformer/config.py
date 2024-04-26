@@ -1,5 +1,7 @@
 class Config():
     def __init__(self):
+
+        ## Transformer Configs ##
         self.numtasks = 31 # MT30 has 30 tasks, + 1 for unknown task we will learn
         self.latent_dim = 512
         self.action_dim = 61
@@ -17,3 +19,19 @@ class Config():
         self.enc_dim = 2
         self.simnorm_dim = 8
         self.encoder_dim = 256
+
+        ## Training args ##
+        self.lr = 1e-4
+        self.num_epochs = 120
+        self.num_batches = 10000
+        self.batch_size = 64
+
+        ## Used in TMPC2 Loss ##
+        self.rho = .5
+        self.entropy_coeff = 1e-4
+        self.tau = 0.005 # Used in the running scale for Qs
+        self.horizon = 4
+
+        self.consistency_coef = 20
+        self.reward_coef = 0.1
+        self.value_coef = 0.1

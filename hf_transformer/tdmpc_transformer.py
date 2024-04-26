@@ -190,42 +190,25 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         state_preds = self.predict_state(x[:, 2])  # predict next state given state and action
 
         # Gaussian policy prior
-        mu, log_std = self.predict_action_and_log_prob(x[:, 1]).chunk(2, dim=-1)
-        # log_std = tdmpc_math.log_std(log_std, self.log_std_min, self.log_std_dif)
-        # eps = torch.randn_like(mu)
+        action_preds, ac_log_std_preds = self.predict_action_and_log_prob(x[:, 1]).chunk(2, dim=-1)
 
-        # # if self.cfg.multitask:  # Mask out unused action dimensions
-        # mu = mu * self._action_masks[task]
-        # log_std = log_std * self._action_masks[task]
-        # eps = eps * self._action_masks[task]
-        # action_dims = self._action_masks.sum(-1)[task].unsqueeze(-1)
-        # # else:  # No masking
-        # #     action_dims = None
-
-        # log_pi = tdmpc_math.gaussian_logprob(eps, log_std, size=action_dims)
-        # pi = mu + eps * log_std.exp()
-        # mu, pi, log_pi = tdmpc_math.squash(mu, pi, log_pi)
-
-        # action_preds = (mu, pi, log_pi, log_std)
         if self.use_horizon_batchsize_dimensioning:
             state_preds = state_preds.permute(1,0,2)
-            mu = mu.permute(1,0,2)
-            log_std = log_std.permute(1,0,2)
+            action_preds = action_preds.permute(1,0,2)
+            ac_log_std_preds = ac_log_std_preds.permute(1,0,2)
             return_preds = return_preds.permute(1,0,2)
 
-        action_preds = (mu, log_std)
+        # if not return_dict:
+        return state_preds, action_preds, ac_log_std_preds, return_preds
 
-        if not return_dict:
-            return (state_preds, action_preds, return_preds)
-
-        return DecisionTransformerOutput(
-            last_hidden_state=encoder_outputs.last_hidden_state,
-            state_preds=state_preds,
-            action_preds=action_preds,
-            return_preds=return_preds,
-            hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
-        )
+        # return DecisionTransformerOutput(
+        #     last_hidden_state=encoder_outputs.last_hidden_state,
+        #     state_preds=state_preds,
+        #     action_preds=action_preds,
+        #     return_preds=return_preds,
+        #     hidden_states=encoder_outputs.hidden_states,
+        #     attentions=encoder_outputs.attentions,
+        # )
 
 
 class TDMPCDecisionTransformerConfig(DecisionTransformerConfig):

@@ -4,6 +4,7 @@ from transformers import Trainer, TrainingArguments
 from hf_transformer.data_collator import DecisionTransformerGymDataCollator
 from hf_transformer.tdmpc_transformer import TDMPCDecisionTransformerConfig, TDMPCDecisionTransformerModel
 from hf_transformer.config import Config
+from hf_transformer.tf_trainer import TF_Trainer
 from hf_transformer.hf_hub_files import get_tdmpc2_mt30
 
 os.environ["WANDB_DISABLED"] = "true" # we diable weights and biases logging for this tutorial
@@ -43,12 +44,25 @@ training_args = TrainingArguments(
     max_grad_norm=0.25,
 )
 
-trainer = Trainer(
+premade_trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=dataset,
     data_collator=collator,
 )
 
+training_args = {
+    'lr': 1e-4,
+    'num_epochs': 120,
+    'num_batches': 10000,
+    'batch_size': 64
+}
+custom_trainer = TF_Trainer(
+    model=model,
+    config=training_args,
+    train_dataset=dataset,
+    data_collator=collator
+)
+
 print("Beginning training...")
-trainer.train()
+premade_trainer.train()
