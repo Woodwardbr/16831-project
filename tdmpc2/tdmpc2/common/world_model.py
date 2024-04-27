@@ -144,15 +144,33 @@ class WorldModel(nn.Module):
         """
         if self.cfg.multitask:
             z = self.task_emb(z, task)
+
+        rew = self._transformer(states=z, actions=a)
         z = torch.cat([z, a], dim=-1)
         return self._reward(z)
     
-    def get_z_only_tf_input(self, z):
+    def get_z_only_tf_input(self, z, actions=None, rewards=None, timesteps=None, returns_to_go=None):
         if len(z.shape)<3:
             z = z.unsqueeze(0)
 
         horizon = z.shape[0]
         batch_size = z.shape[1]
+        if actions is not None:
+            assert actions.shape[0] == horizon and actions.shape[1] == batch_size and actions.shape==self.cfg.action_dim, f"shape assertion failed: actions shape: {actions.shape} expected shape: ({horizon},{batch_size},{self.cfg.action_dim})"
+        else:
+            actions = torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device)
+        
+        if rewards is not None:
+            assert rewards.shape[0] == horizon and rewards.shape[1] == batch_size and rewards.shape==1, f"shape assertion failed: rewards shape: {rewards.shape} expected shape: ({horizon},{batch_size},1)"
+        else:
+            rewards = torch.zeros((horizon,batch_size,1)).to(z.device)
+
+        if returns_to_go is not None:
+            assert returns_to_go.shape[0] == horizon and returns_to_go.shape[1] == batch_size and returns_to_go.shape==1, f"shape assertion failed: returns_to_go shape: {returns_to_go.shape} expected shape: ({horizon},{batch_size},1)"
+        else:
+            returns_to_go = torch.zeros((horizon,batch_size,1)).to(z.device)
+
+        """
         tf_inputs = {
             'states': z,
             'actions': torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device),
@@ -161,10 +179,19 @@ class WorldModel(nn.Module):
             'timesteps': torch.arange(0,horizon).unsqueeze(0).repeat(batch_size,1).T.unsqueeze(2).to(z.device),
             # 'attention_mask': torch.zeros((horizon,batch_size,1)).to(z.device)
         }
+        """
+        tf_inputs = {
+            'states': z,
+            'actions': actions,
+            'rewards': rewards,
+            'returns_to_go': returns_to_go,
+            'timesteps': torch.arange(0,horizon).unsqueeze(0).repeat(batch_size,1).T.unsqueeze(2).to(z.device),
+            # 'attention_mask': torch.zeros((horizon,batch_size,1)).to(z.device)
+        }
         return tf_inputs
 
 
-    def pi(self, z, task):
+    def pi(self, z, task, actions=None):
         """
         Samples an action from the policy prior.
         The policy prior is a Gaussian distribution with
@@ -175,7 +202,7 @@ class WorldModel(nn.Module):
 
         # Gaussian policy prior
         # mu, log_std = self._pi(z).chunk(2, dim=-1)
-        tf_input = self.get_z_only_tf_input(z)
+        tf_input = self.get_z_only_tf_input(z, actions)
         _, _, mu, log_std, _ = self._transformer(**tf_input)
         if len(z.shape) < 3:
             mu = mu.squeeze()
