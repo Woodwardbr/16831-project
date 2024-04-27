@@ -23,15 +23,24 @@ class Config():
         ## Training args ##
         self.lr = 1e-4
         self.num_epochs = 120
-        self.num_batches = 10000
         self.batch_size = 64
+        self.clip_grad_norm = 20
 
         ## Used in TMPC2 Loss ##
         self.rho = .5
-        self.entropy_coeff = 1e-4
+        self.entropy_coef = 1e-4
         self.tau = 0.005 # Used in the running scale for Qs
         self.horizon = 4
 
         self.consistency_coef = 20
         self.reward_coef = 0.1
         self.value_coef = 0.1
+        self.action_coef = 0.1
+        self.log_pi_coef = .1
+
+        ## Used in tdmpc2 math file ##
+        self.num_bins = 101
+        self.vmin = -10
+        self.vmax = 10
+        self.bin_size = (self.vmax - self.vmin) / (self.num_bins - 1)
+        

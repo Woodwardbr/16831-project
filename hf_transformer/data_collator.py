@@ -23,6 +23,7 @@ class DecisionTransformerGymDataCollator:
         self.state_dim = config.obs_shape['state'][0]
         self.latent_dim = config.latent_dim
         self.task_dim = config.task_dim
+        self.max_len = config.horizon
         self.dataset = dataset
 
         # calculate dataset stats for normalization of states
@@ -42,25 +43,10 @@ class DecisionTransformerGymDataCollator:
         for t in reversed(range(x.shape[0] - 1)):
             discount_cumsum[t] = x[t] + gamma * discount_cumsum[t + 1]
         return discount_cumsum
-    
-    def get_z_only_tf_input(self, z):
-        if len(z.shape)<3:
-            z = z.unsqueeze(0)
 
-        horizon = z.shape[0]
-        batch_size = z.shape[1]
-        tf_inputs = {
-            'states': z,
-            'actions': torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device),
-            'rewards': torch.zeros((horizon,batch_size,1)).to(z.device),
-            'returns_to_go': torch.zeros((horizon,batch_size,1)).to(z.device),
-            'timesteps': torch.arange(0,horizon).unsqueeze(0).repeat(batch_size,1).T.unsqueeze(2).to(z.device),
-            'attention_mask': torch.zeros((horizon,batch_size,1)).to(z.device)
-        }
-        return tf_inputs
-
-    def __call__(self, batch_size):
+    def __call__(self, feature):
         # this is a bit of a hack to be able to sample of a non-uniform distribution
+        batch_size = len(feature)
         batch_inds = np.random.choice(
             np.arange(self.n_traj),
             size=batch_size,
@@ -73,12 +59,17 @@ class DecisionTransformerGymDataCollator:
         for ind in batch_inds:
             # for feature in features:
             feature = self.dataset[int(ind)]
+            # For some reason there are NaNs in some of the rewards
+            feature["reward"][torch.isnan(feature["reward"])] = 0
             si = random.randint(0, len(feature["reward"]) - 1)
 
             # get sequences from dataset
             s_b = feature["obs"][si : si + self.max_len].clone().detach().unsqueeze(0)
             a_b = np.array(feature["action"][si : si + self.max_len])
             r_b = np.array(feature["reward"][si : si + self.max_len])
+            # For some reason there are NaNs in the rewards
+            if any(np.isnan(r_b)):
+                r_b[np.isnan(r_b)] = 0
             t_b = feature["task"][si : si + self.max_len].clone().detach()
 
             # reshape to maximum dimension by adding 0s
@@ -105,8 +96,6 @@ class DecisionTransformerGymDataCollator:
             # padding and state + reward normalization
             tlen = z[-1].shape[1]
             z[-1] = np.concatenate([np.zeros((1, self.max_len - tlen, self.latent_dim)), z[-1]], axis=1)
-            # TODO(woodwardbr): probably can delete this bc of encoding
-            # z[-1][:,:,self.task_dim:] = (z[-1][:,:,self.task_dim:] - self.state_mean) / self.state_std
             a[-1] = np.concatenate(
                 [np.ones((1, self.max_len - tlen, self.act_dim)) * -10.0, a[-1]],
                 axis=1,
@@ -122,6 +111,8 @@ class DecisionTransformerGymDataCollator:
                 a[-1] = np.zeros_like(a[-1])
                 r[-1] = np.zeros_like(r[-1])
                 rtg[-1] = np.zeros_like(rtg[-1])
+
+
 
         z = torch.from_numpy(np.concatenate(z, axis=0)).float()
         a = torch.from_numpy(np.concatenate(a, axis=0)).float()

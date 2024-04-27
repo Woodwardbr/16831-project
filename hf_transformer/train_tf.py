@@ -14,14 +14,8 @@ data_path = get_tdmpc2_mt30() # Download the TDMPC 30 task dataset and return pa
 
 # TODO: Make this use all chunks
 torch.cuda.empty_cache()
-dataset = torch.load(os.path.join(os.getcwd(),data_path,'chunk_3.pt'))
-# for i in range(3):
-#     d = torch.load(os.path.join(os.getcwd(),data_path,f'chunk_{i}.pt'))
-#     for k in dataset.keys():
-#         dataset[k] = torch.cat((dataset[k],d[k]),0)
+dataset = torch.load(os.path.join(os.getcwd(),data_path,'chunk_0.pt'))
 
-# Custom config object
-# stored in config.py
 cfg = Config()
 collator = DecisionTransformerGymDataCollator(dataset, cfg)
 
@@ -32,37 +26,13 @@ tf_config = TDMPCDecisionTransformerConfig(num_tasks=cfg.numtasks,
                                             use_horizon_batchsize_dimensioning=cfg.use_horizon_batchsize_dimensioning)
 model = TDMPCDecisionTransformerModel(tf_config)
 
-training_args = TrainingArguments(
-    output_dir="pretrained_models/",
-    remove_unused_columns=False,
-    num_train_epochs=120,
-    per_device_train_batch_size=64,
-    learning_rate=1e-4,
-    weight_decay=1e-4,
-    warmup_ratio=0.1,
-    optim="adamw_torch",
-    max_grad_norm=0.25,
-)
-
-premade_trainer = Trainer(
+trainer = TF_Trainer(
     model=model,
-    args=training_args,
+    cfg=cfg,
     train_dataset=dataset,
-    data_collator=collator,
-)
-
-training_args = {
-    'lr': 1e-4,
-    'num_epochs': 120,
-    'num_batches': 10000,
-    'batch_size': 64
-}
-custom_trainer = TF_Trainer(
-    model=model,
-    config=training_args,
-    train_dataset=dataset,
-    data_collator=collator
+    collator=collator
 )
 
 print("Beginning training...")
-premade_trainer.train()
+model, train_history = trainer.train()
+model.save('pretrained_models/model.keras')

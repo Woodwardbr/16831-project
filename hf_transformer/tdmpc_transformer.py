@@ -1,4 +1,3 @@
-import tdmpc2.common.math as tdmpc_math
 import os
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
@@ -49,13 +48,12 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         # note: we don't predict states or returns for the paper
         self.predict_state = torch.nn.Linear(config.hidden_size, config.state_dim)
 
+        self.predict_q = torch.nn.Linear(config.hidden_size, 1)
+
         # woodwardbr: This is from tdmpc
         self.predict_action_and_log_prob = nn.Sequential(
             *([nn.Linear(config.hidden_size, 2*config.act_dim)])
         )
-
-        # TODO(woodwardbr): delete if we dont add math back in
-        # self._action_masks = torch.zeros(config.num_tasks, config.act_dim)
 
         self.predict_return = torch.nn.Linear(config.hidden_size, 1)
 
@@ -188,18 +186,20 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
         # get predictions
         return_preds = self.predict_return(x[:, 2])  # predict next return given state and action
         state_preds = self.predict_state(x[:, 2])  # predict next state given state and action
+        q_preds = self.predict_q(x[:, 2]) # predict next Q given state and action
 
         # Gaussian policy prior
         action_preds, ac_log_std_preds = self.predict_action_and_log_prob(x[:, 1]).chunk(2, dim=-1)
 
         if self.use_horizon_batchsize_dimensioning:
             state_preds = state_preds.permute(1,0,2)
+            q_preds = q_preds.permute(1,0,2)
             action_preds = action_preds.permute(1,0,2)
             ac_log_std_preds = ac_log_std_preds.permute(1,0,2)
             return_preds = return_preds.permute(1,0,2)
 
         # if not return_dict:
-        return state_preds, action_preds, ac_log_std_preds, return_preds
+        return state_preds, q_preds, action_preds, ac_log_std_preds, return_preds
 
         # return DecisionTransformerOutput(
         #     last_hidden_state=encoder_outputs.last_hidden_state,
