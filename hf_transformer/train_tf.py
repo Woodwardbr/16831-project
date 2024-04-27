@@ -35,4 +35,4 @@ trainer = TF_Trainer(
 
 print("Beginning training...")
 model, train_history = trainer.train()
-model.save('pretrained_models/model.keras')
+model.save(model.state_dict(),'pretrained_models/model_final/model.keras')
