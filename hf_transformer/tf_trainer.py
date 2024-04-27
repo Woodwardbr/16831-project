@@ -69,11 +69,12 @@ class TF_Trainer():
 
                 loss_buffer.append(loss.item())
                 
-                if i % 19 == 0:
+                if i % 50 == 0:
                     print("epoch %d, iter %d, loss %.3f" % (epoch, i, np.mean(loss_buffer)))
                     loss_buffer = []
             train_history.append(loss_buffer[-1])
             self.scheduler.step()
+            self.model.save(self.model.state_dict(),f"pretrained_models/model_{epoch}/model.keras")
 
             # self.model.eval()
             # test_losses = []
