@@ -59,17 +59,20 @@ class DecisionTransformerGymDataCollator:
         for ind in batch_inds:
             # for feature in features:
             feature = self.dataset[int(ind)]
+            si = random.randint(0, len(feature["reward"]) - 1)
+
+            # Data cleaning
             # For some reason there are NaNs in some of the rewards
             feature["reward"][torch.isnan(feature["reward"])] = 0
-            si = random.randint(0, len(feature["reward"]) - 1)
+            # For some reason some of the actions are enormous
+            feature['action'][feature['action']> 10] =  10
+            feature['action'][feature['action']<-10] = -10
+            
 
             # get sequences from dataset
             s_b = feature["obs"][si : si + self.max_len].clone().detach().unsqueeze(0)
             a_b = np.array(feature["action"][si : si + self.max_len])
             r_b = np.array(feature["reward"][si : si + self.max_len])
-            # For some reason there are NaNs in the rewards
-            if any(np.isnan(r_b)):
-                r_b[np.isnan(r_b)] = 0
             t_b = feature["task"][si : si + self.max_len].clone().detach()
 
             # reshape to maximum dimension by adding 0s
