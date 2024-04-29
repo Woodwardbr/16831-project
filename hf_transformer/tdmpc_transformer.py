@@ -55,7 +55,8 @@ class TDMPCDecisionTransformerModel(DecisionTransformerPreTrainedModel):
             *([nn.Linear(config.hidden_size, 2*config.act_dim)])
         )
 
-        self.predict_return = torch.nn.Linear(config.hidden_size, 1)
+        # kaustabp: This is from tdmpc to get correct reward shape
+        self.predict_return = torch.nn.Linear(config.hidden_size, max(config.num_bins, 1)) #torch.nn.Linear(config.hidden_size, 1)
 
         # woodwardbr: Use this to have the data come in as (Horizon, Batchsize, Dimension)
         #             instead of (Batchsize, Horizon, Dimension)
@@ -238,12 +239,14 @@ class TDMPCDecisionTransformerConfig(DecisionTransformerConfig):
         eos_token_id=50256,
         scale_attn_by_inverse_layer_idx=False,
         reorder_and_upcast_attn=False,
+        num_bins=1,
         **kwargs,
     ):
+        #kaustabp: added num_bins parameter to the config which is needed for reward mlp
         # For adding any additional KWArgs we want to config
         self.num_tasks = num_tasks
         self.use_horizon_batchsize_dimensioning = use_horizon_batchsize_dimensioning
-
+        self.num_bins = num_bins
         super().__init__(
             state_dim=state_dim, act_dim=act_dim,  max_ep_len=max_ep_len,
             action_tanh=action_tanh, vocab_size=vocab_size, hidden_size=hidden_size,

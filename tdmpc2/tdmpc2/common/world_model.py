@@ -40,7 +40,8 @@ class WorldModel(nn.Module):
         self.tf_config = TDMPCDecisionTransformerConfig(num_tasks=cfg.task_dim,
                                                         state_dim=cfg.latent_dim,
                                                         act_dim=cfg.action_dim,
-                                                        use_horizon_batchsize_dimensioning=True
+                                                        use_horizon_batchsize_dimensioning=True,
+                                                        num_bins=cfg.num_bins,
                                                         )
         self._transformer = TDMPCDecisionTransformerModel(self.tf_config)
         self._Qs = layers.Ensemble(
@@ -144,9 +145,13 @@ class WorldModel(nn.Module):
         """
         if self.cfg.multitask:
             z = self.task_emb(z, task)
-
-        rew = self._transformer(states=z, actions=a)
+        #a shape 512,61 expected 1 512 61
+        tf= self.get_z_only_tf_input(z, a.unsqueeze(0))
+        _,_,_,_,rew = self._transformer(**tf)
+        print("Reward shape :", rew.shape)
         z = torch.cat([z, a], dim=-1)
+        #print("Reward shape :", self._reward(z).shape)
+        #reward shape [512, 101]
         return self._reward(z)
     
     def get_z_only_tf_input(self, z, actions=None, rewards=None, timesteps=None, returns_to_go=None):
@@ -156,17 +161,17 @@ class WorldModel(nn.Module):
         horizon = z.shape[0]
         batch_size = z.shape[1]
         if actions is not None:
-            assert actions.shape[0] == horizon and actions.shape[1] == batch_size and actions.shape==self.cfg.action_dim, f"shape assertion failed: actions shape: {actions.shape} expected shape: ({horizon},{batch_size},{self.cfg.action_dim})"
+            assert actions.shape[0] == horizon and actions.shape[1] == batch_size and actions.shape[2]==self.cfg.action_dim, f"shape assertion failed: actions shape: {actions.shape} expected shape: ({horizon},{batch_size},{self.cfg.action_dim})"
         else:
             actions = torch.zeros((horizon,batch_size,self.cfg.action_dim)).to(z.device)
         
         if rewards is not None:
-            assert rewards.shape[0] == horizon and rewards.shape[1] == batch_size and rewards.shape==1, f"shape assertion failed: rewards shape: {rewards.shape} expected shape: ({horizon},{batch_size},1)"
+            assert rewards.shape[0] == horizon and rewards.shape[1] == batch_size and rewards.shape[2]==1, f"shape assertion failed: rewards shape: {rewards.shape} expected shape: ({horizon},{batch_size},1)"
         else:
             rewards = torch.zeros((horizon,batch_size,1)).to(z.device)
 
         if returns_to_go is not None:
-            assert returns_to_go.shape[0] == horizon and returns_to_go.shape[1] == batch_size and returns_to_go.shape==1, f"shape assertion failed: returns_to_go shape: {returns_to_go.shape} expected shape: ({horizon},{batch_size},1)"
+            assert returns_to_go.shape[0] == horizon and returns_to_go.shape[1] == batch_size and returns_to_go.shape[2]==1, f"shape assertion failed: returns_to_go shape: {returns_to_go.shape} expected shape: ({horizon},{batch_size},1)"
         else:
             returns_to_go = torch.zeros((horizon,batch_size,1)).to(z.device)
 
@@ -202,6 +207,8 @@ class WorldModel(nn.Module):
 
         # Gaussian policy prior
         # mu, log_std = self._pi(z).chunk(2, dim=-1)
+        if actions is not None:
+            actions = actions.unsqueeze(0)
         tf_input = self.get_z_only_tf_input(z, actions)
         _, _, mu, log_std, _ = self._transformer(**tf_input)
         if len(z.shape) < 3:

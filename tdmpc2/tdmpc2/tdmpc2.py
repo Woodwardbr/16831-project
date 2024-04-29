@@ -128,8 +128,9 @@ class TDMPC2:
                 if self.cfg.multitask
                 else self.discount
             )
+        #kaustabp: adding actions to Q calculation
         return G + discount * self.model.Q(
-            z, self.model.pi(z, task)[1], task, return_type="avg"
+            z, self.model.pi(z, task, actions=actions[self.cfg.horizon - 1])[1], task, return_type="avg"
         )
 
     @torch.no_grad()
